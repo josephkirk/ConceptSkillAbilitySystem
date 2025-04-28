@@ -24,6 +24,20 @@ The Concept Skill System is built around the following design pillars:
 
 8. **Player-Driven Specialization**: Character development is highly personalized, shaped by the player's choices in what to observe, which concepts to prioritize, how to allocate limited concept slots, and how to utilize tools like the Body Manual to customize their character's fundamental conceptual capacity, supporting diverse and flexible archetypes.
 
+## Features
+
+* **Concept-based Skill System**: Characters can acquire concepts through observation and interaction, which can be combined to create skills.
+* **Slot-based Concept Storage**: Characters have slots tied to body parts that can hold concepts, with higher-tier concepts requiring more slots.
+* **Observation Mechanics**: Characters can observe objects and entities to learn concepts from them.
+* **Skill Creation and Management**: Create skills by combining concepts, with different manifestation types (Active, Passive, Crafting, Proficiency).
+* **Object Quality System**: Objects can hold concepts based on their quality, with higher-quality objects having more slots.
+* **Body Manual**: Special items that allow characters to customize their concept slots.
+* **Concept Registry**: Central registry for managing all concepts and skills in the game.
+* **Gameplay Ability System Integration**: Fully integrated with Unreal Engine's Gameplay Ability System for robust ability management.
+* **Gameplay Tags**: Uses Gameplay Tags for concept categorization, skill requirements, and effects.
+* **Attribute System**: Custom attribute set for concept-related character statistics.
+* **Gameplay Cues**: Visual and audio feedback for concept abilities using Niagara particles and sound effects.
+
 ## Core Components
 
 ### Concepts

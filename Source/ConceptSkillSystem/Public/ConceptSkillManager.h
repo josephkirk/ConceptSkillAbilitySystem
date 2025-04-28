@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "GameplayAbilitySpec.h"
-#include "ConceptComponent.h"
 #include "ConceptSkill.h"
+#include "GameplayAbilitySpec.h"
+#include "GameplayEffect.h"
+#include "AbilitySystemComponent.h"
+#include "GameplayCueInterface.h"
 #include "ConceptSkillManager.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkillUnlocked, UConceptSkill*, Skill);
@@ -17,7 +19,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkillRemoved, UConceptSkill*, Ski
  * Implements the "Synergistic and Emergent Capabilities" design pillar
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class CONCEPTSKILLSYSTEM_API UConceptSkillManager : public UActorComponent
+class CONCEPTSKILLSYSTEM_API UConceptSkillManager : public UActorComponent, public IGameplayCueInterface
 {
 	GENERATED_BODY()
 
@@ -31,9 +33,17 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Concept Skill System")
 	UConceptComponent* ConceptComponent;
 
-	// The skills this character has unlocked
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Concept Skill System")
-	TArray<TSoftObjectPtr<UConceptSkill>> UnlockedSkills;
+	// Reference to the ability system component on the same actor
+	UPROPERTY(BlueprintReadOnly, Category = "Concept Skill System")
+	class UAbilitySystemComponent* AbilitySystemComponent;
+
+	// Map of unlocked skills
+	UPROPERTY()
+	TMap<FName, UConceptSkill*> UnlockedSkills;
+
+	// Map of gameplay cue tags for skills
+	UPROPERTY()
+	TMap<UConceptSkill*, FGameplayTag> SkillGameplayCueTags;
 
 	// The active skills that can be used
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Concept Skill System")
@@ -89,6 +99,38 @@ public:
 	// Calculate the effective power of a skill based on current concept mastery
 	UFUNCTION(BlueprintCallable, Category = "Concept Skill System")
 	int32 CalculateSkillEffectivePower(UConceptSkill* Skill) const;
+
+	// Grant gameplay abilities for all unlocked skills
+	UFUNCTION(BlueprintCallable, Category = "Concept Skill System")
+	void GrantAbilitiesForUnlockedSkills();
+
+	// Grant a gameplay ability for a specific skill
+	UFUNCTION(BlueprintCallable, Category = "Concept Skill System")
+	FGameplayAbilitySpecHandle GrantAbilityForSkill(UConceptSkill* Skill);
+
+	// Remove a gameplay ability for a specific skill
+	UFUNCTION(BlueprintCallable, Category = "Concept Skill System")
+	bool RemoveAbilityForSkill(UConceptSkill* Skill);
+
+	// Update ability levels based on concept mastery
+	UFUNCTION(BlueprintCallable, Category = "Concept Skill System")
+	void UpdateAbilityLevels();
+
+	// Apply gameplay effects for passive abilities
+	UFUNCTION(BlueprintCallable, Category = "Concept Skill System")
+	void ApplyPassiveEffects();
+
+	// IGameplayCueInterface
+	virtual void ExecuteCue(const FGameplayTag& Tag, const FGameplayCueParameters& Parameters) override;
+	virtual void ForwardGameplayCueToParent() override;
+
+	// Execute a gameplay cue for a specific skill
+	UFUNCTION(BlueprintCallable, Category = "Concept Skill Manager")
+	void ExecuteGameplayCueForSkill(UConceptSkill* Skill, AActor* Target);
+
+	// Get all skills with a specific gameplay tag
+	UFUNCTION(BlueprintCallable, Category = "Concept Skill System")
+	TArray<UConceptSkill*> GetSkillsWithTag(const FGameplayTag& Tag) const;
 
 private:
 	// Categorize skills by their manifestation type

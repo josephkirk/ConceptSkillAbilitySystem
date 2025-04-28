@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayAbilitySpec.h"
+#include "GameplayTagContainer.h"
 #include "Concept.h"
 #include "ConceptSkill.generated.h"
 
@@ -56,6 +57,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Concept Skill")
 	TSubclassOf<class UGameplayAbility> GrantedAbility;
 
+	// Gameplay tags that describe this skill
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Concept Skill")
+	FGameplayTagContainer SkillTags;
+
+	// Gameplay tags required to use this skill
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Concept Skill")
+	FGameplayTagContainer RequiredTags;
+
+	// Gameplay tags that block this skill
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Concept Skill")
+	FGameplayTagContainer BlockedTags;
+
+	// Gameplay effects granted by this skill (for passive abilities)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Concept Skill")
+	TArray<TSubclassOf<class UGameplayEffect>> GrantedEffects;
+
 	// The power level of this skill (calculated from component concepts)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Concept Skill", meta = (ClampMin = "1"))
 	int32 Power;
@@ -70,4 +87,16 @@ public:
 	// Calculate the effective power based on mastery levels
 	UFUNCTION(BlueprintCallable, Category = "Concept Skill")
 	int32 CalculateEffectivePower(const TMap<TSoftObjectPtr<UConcept>, int32>& ConceptMasteryLevels) const;
+
+	// Get the gameplay tag for this skill's manifestation type
+	UFUNCTION(BlueprintCallable, Category = "Concept Skill")
+	FGameplayTag GetManifestationTag() const;
+
+	// Check if this skill has a specific tag
+	UFUNCTION(BlueprintCallable, Category = "Concept Skill")
+	bool HasSkillTag(const FGameplayTag& Tag) const;
+
+	// Get the gameplay ability specification for this skill
+	UFUNCTION(BlueprintCallable, Category = "Concept Skill")
+	FGameplayAbilitySpec GetAbilitySpec(int32 Level = 1) const;
 };

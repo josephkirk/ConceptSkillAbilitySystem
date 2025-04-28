@@ -31,7 +31,8 @@ public class ConceptSkillSystem : ModuleRules
 				"InputCore",
 				"GameplayAbilities",
 				"GameplayTags",
-				"GameplayTasks"
+				"GameplayTasks",
+				"Niagara"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

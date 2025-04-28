@@ -7,6 +7,7 @@
 #include "GameplayTagContainer.h"
 #include "ConceptSlot.h"
 #include "Concept.h"
+#include "AbilitySystemInterface.h"
 #include "ConceptComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnConceptAcquired, UConcept*, Concept, FConceptSlot, Slot);
@@ -18,7 +19,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotUnlocked, FConceptSlot, Unloc
  * Implements the "Embodied Knowledge" design pillar
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class CONCEPTSKILLSYSTEM_API UConceptComponent : public UActorComponent
+class CONCEPTSKILLSYSTEM_API UConceptComponent : public UActorComponent, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -27,6 +28,9 @@ public:
 
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	// IAbilitySystemInterface
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	// The slots for each body part
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept System")
@@ -99,4 +103,8 @@ private:
 
 	// Update a slot in the body part slots map
 	void UpdateSlot(const FConceptSlot& Slot, EBodyPartType BodyPart);
+
+	// The ability system component associated with this actor
+	UPROPERTY()
+	class UAbilitySystemComponent* AbilitySystemComponent;
 };

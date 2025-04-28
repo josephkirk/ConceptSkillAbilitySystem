@@ -1,6 +1,8 @@
 // Copyright Koorogi Games, Inc. All Rights Reserved.
 
 #include "ConceptComponent.h"
+#include "Abilities/ConceptAbilitySystemComponent.h"
+#include "ConceptSkillTags.h"
 
 UConceptComponent::UConceptComponent()
 {
@@ -17,11 +19,29 @@ void UConceptComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	InitializeSlots();
+
+	// Find or create the ability system component
+	AActor* Owner = GetOwner();
+	if (Owner)
+	{
+		AbilitySystemComponent = Owner->FindComponentByClass<UAbilitySystemComponent>();
+		if (!AbilitySystemComponent)
+		{
+			// Create a new ability system component if one doesn't exist
+			AbilitySystemComponent = NewObject<UConceptAbilitySystemComponent>(Owner, TEXT("ConceptAbilitySystemComponent"));
+			AbilitySystemComponent->RegisterComponent();
+		}
+	}
 }
 
 void UConceptComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+}
+
+UAbilitySystemComponent* UConceptComponent::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
 }
 
 void UConceptComponent::InitializeSlots()
@@ -187,6 +207,30 @@ bool UConceptComponent::AcquireConcept(UConcept* Concept, EBodyPartType TargetBo
 	// Add to acquired concepts
 	AcquiredConcepts.Add(Concept);
 	
+	// Apply gameplay tags for this concept if we have an ability system component
+	if (AbilitySystemComponent)
+	{
+		// Add the concept's tier tag
+		FGameplayTag TierTag = FConceptSkillTags::GetConceptTierTag(Concept->Tier);
+		if (TierTag.IsValid())
+		{
+			AbilitySystemComponent->AddLooseGameplayTag(TierTag);
+		}
+
+		// Add the concept's tags
+		for (const FGameplayTag& Tag : Concept->ConceptTags)
+		{
+			AbilitySystemComponent->AddLooseGameplayTag(Tag);
+		}
+
+		// Add the body part tag
+		FGameplayTag BodyPartTag = FConceptSkillTags::GetBodyPartTag(TargetBodyPart);
+		if (BodyPartTag.IsValid())
+		{
+			AbilitySystemComponent->AddLooseGameplayTag(BodyPartTag);
+		}
+	}
+	
 	// Broadcast delegate
 	OnConceptAcquired.Broadcast(Concept, EmptySlot);
 	
@@ -266,6 +310,17 @@ bool UConceptComponent::IncreaseMastery(const FGuid& SlotId, int32 Amount)
 	
 	// Update the slot
 	UpdateSlot(FoundSlot, BodyPart);
+	
+	// Update ability system component if we have one
+	if (AbilitySystemComponent && FoundSlot.HeldConcept.IsValid())
+	{
+		// If this is a UConceptAbilitySystemComponent, update ability levels based on new mastery
+		UConceptAbilitySystemComponent* ConceptASC = Cast<UConceptAbilitySystemComponent>(AbilitySystemComponent);
+		if (ConceptASC)
+		{
+			ConceptASC->UpdateAbilityLevelsFromConceptMastery();
+		}
+	}
 	
 	// Broadcast delegate
 	if (FoundSlot.HeldConcept.IsValid())
