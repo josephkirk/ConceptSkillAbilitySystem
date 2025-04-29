@@ -547,6 +547,16 @@ bool UConceptComponent::MediateSkill(const TArray<UConcept*>& Concepts, bool bIs
     // Add to mediated skills array
     MediatedSkills.Add(NewSkill);
     
+    // After adding the mediated skill, apply a Gameplay Tag for ability integration
+    if (AbilitySystemComponent && MediatedSkills.Num() > 0)
+    {
+        FGameplayTagContainer TagContainer;
+        FString TagName = FString::Printf(TEXT("ConceptSkill.%s"), *NewSkill.SkillDescription.Replace(TEXT(" "), TEXT(".")).ToLower());  // Generate a tag like 'conceptskill.skill.from.concepts.fire.wind'
+        TagContainer.AddTag(FGameplayTag::RequestGameplayTag(FName(*TagName)));
+        AbilitySystemComponent->AddLooseGameplayTags(TagContainer);  // Apply tag to ability system
+        UE_LOG(LogTemp, Log, TEXT("Applied Gameplay Tag: %s for new skill"), *TagName);
+    }
+    
     // Corrected logging to handle concept names array
     TArray<FString> ConceptNames;
     for (auto* Concept : Concepts)
@@ -585,6 +595,19 @@ void UConceptComponent::TestConceptMechanics()
     if (MediateSkill(TestConcepts, true))  // Test active skill mediation
     {
         UE_LOG(LogTemp, Log, TEXT("Test: Skill mediation succeeded."));
+        if (AbilitySystemComponent)
+        {
+            FGameplayTagContainer TagsToCheck;
+            TagsToCheck.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("ConceptSkill.Skill.from.concepts:fire.wind"))));  // Example tag based on test concepts
+            if (AbilitySystemComponent->HasAnyMatchingGameplayTags(TagsToCheck))
+            {
+                UE_LOG(LogTemp, Log, TEXT("Test: Gameplay Tag applied successfully."));
+            }
+            else
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Test: Gameplay Tag not applied."));
+            }
+        }
     }
     else
     {
