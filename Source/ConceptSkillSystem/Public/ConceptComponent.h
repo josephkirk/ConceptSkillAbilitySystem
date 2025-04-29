@@ -112,12 +112,38 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Synergy")
 	TArray<FString> GetConceptCombinationSynergies(const TArray<UConcept*>& Concepts);  // Return emergent synergies from combined concepts
 
+	// New functions for skill manifestation mechanics
+	UFUNCTION(BlueprintCallable, Category = "Concept Manifestation")
+	bool MediateSkill(const TArray<UConcept*>& Concepts, bool bIsActiveSkill);  // Attempt to combine concepts into a skill
+
+	UFUNCTION(BlueprintCallable, Category = "Concept Manifestation")
+	TArray<FString> GetMediatedSkills();  // Return a list of mediated skills for the character
+
+	// New USTRUCT for mediated skills
+	USTRUCT(BlueprintType)
+	struct FMediatedSkill
+	{
+		GENERATED_BODY()
+		
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept Manifestation")
+		TArray<TSoftObjectPtr<UConcept>> Concepts;  // Array of concepts combined into this skill
+		
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept Manifestation")
+		bool bIsActiveSkill;  // True for active skills, false for passive
+		
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept Manifestation")
+		FString SkillDescription;  // Descriptive string for the skill's effect
+	};
+
 	// Properties for progression mechanics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Progression")
 	float ProgressionPool;  // Current pool of progression points
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Progression", meta = (ClampMin = "0", UIMin = "0"))
 	float ProgressionCostToUnlockSlot;  // Cost in progression points to unlock a new slot, default can be set in editor
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept Manifestation")
+	TArray<FMediatedSkill> MediatedSkills;
 
 	// New functions for gaining progression and modified UnlockConceptSlot
 	UFUNCTION(BlueprintCallable, Category = "Progression")

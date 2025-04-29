@@ -19,7 +19,8 @@ void UConceptComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	InitializeSlots();
-
+	UE_LOG(LogTemp, Log, TEXT("ConceptComponent initialized for actor %s"), *GetOwner()->GetName());
+	
 	// Find or create the ability system component
 	AActor* Owner = GetOwner();
 	if (Owner)
@@ -475,6 +476,7 @@ float UConceptComponent::CalculateCharacterObjectSynergy(UObject* EquippedObject
             synergy *= avgAmplification;
         }
         
+        UE_LOG(LogTemp, Log, TEXT("Calculating synergy with object: %s, Result: %f"), *EquippedObject->GetName(), synergy);
         return synergy;  // Return synergy value as float
     }
     return 0.0f;  // No synergy if object is not a UConceptualObject or null
@@ -508,4 +510,97 @@ TArray<FString> UConceptComponent::GetConceptCombinationSynergies(const TArray<U
     // Remove duplicates if any
     synergies.Shrink();
     return synergies;
+}
+
+bool UConceptComponent::MediateSkill(const TArray<UConcept*>& Concepts, bool bIsActiveSkill)
+{
+    // Check if all concepts are acquired by the character
+    for (auto* Concept : Concepts)
+    {
+        if (!HasAcquiredConcept(Concept))
+        {
+            return false;  // Cannot mediate if not all concepts are acquired
+        }
+    }
+    
+    // Create a new mediated skill
+    FMediatedSkill NewSkill;
+    NewSkill.Concepts = Concepts;  // Copy the array of concepts
+    NewSkill.bIsActiveSkill = bIsActiveSkill;
+    
+    // Generate a simple description based on concepts (can be expanded with a system for emergent effects)
+    FString Description = "Skill from concepts: ";
+    for (auto* Concept : Concepts)
+    {
+        Description += Concept->GetName() + " ";  // Assume UConcept has GetName()
+    }
+    if (bIsActiveSkill)
+    {
+        Description += "(Active)";
+    }
+    else
+    {
+        Description += "(Passive)";
+    }
+    NewSkill.SkillDescription = Description;
+    
+    // Add to mediated skills array
+    MediatedSkills.Add(NewSkill);
+    
+    // Corrected logging to handle concept names array
+    TArray<FString> ConceptNames;
+    for (auto* Concept : Concepts)
+    {
+        if (Concept)
+        {
+            ConceptNames.Add(Concept->GetName());
+        }
+    }
+    UE_LOG(LogTemp, Log, TEXT("Mediating skill with concepts: %s, Active: %s"), *FString::Join(ConceptNames, TEXT(", ")), bIsActiveSkill ? TEXT("true") : TEXT("false"));
+    return true;  // Successfully mediated the skill
+}
+
+TArray<FString> UConceptComponent::GetMediatedSkills()
+{
+    TArray<FString> SkillList;
+    for (const auto& Skill : MediatedSkills)
+    {
+        FString SkillString = Skill.SkillDescription;
+        SkillList.Add(SkillString);
+    }
+    return SkillList;  // Return descriptions of all mediated skills
+}
+
+UFUNCTION(BlueprintCallable, Category = "Testing")
+void UConceptComponent::TestConceptMechanics()
+{
+    // Example test for skill mediation
+    TArray<UConcept*> TestConcepts;
+    // Assume sample concepts are loaded or created; in practice, provide via parameters or mock data
+    UConcept* Concept1 = NewObject<UConcept>(); Concept1->Name = FName("Fire");  // Mock concept for testing
+    UConcept* Concept2 = NewObject<UConcept>(); Concept2->Name = FName("Wind");
+    TestConcepts.Add(Concept1);
+    TestConcepts.Add(Concept2);
+    
+    if (MediateSkill(TestConcepts, true))  // Test active skill mediation
+    {
+        UE_LOG(LogTemp, Log, TEXT("Test: Skill mediation succeeded."));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Test: Skill mediation failed."));
+    }
+    
+    // Test synergy calculation (assume an equipped object is available)
+    // For demonstration, create a mock ConceptualObject if needed
+    AConceptualObject* MockObject = Cast<AConceptualObject>(GetOwner()->FindComponentByClass(UConceptualObject::StaticClass()));
+    if (MockObject)
+    {
+        float synergy = CalculateCharacterObjectSynergy(MockObject);
+        UE_LOG(LogTemp, Log, TEXT("Test: Character-Object synergy calculated as %f"), synergy);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Test: No ConceptualObject found for synergy test."));
+    }
 }
