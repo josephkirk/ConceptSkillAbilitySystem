@@ -86,6 +86,15 @@ void UConceptComponent::InitializeSlots()
 		
 		BodyPartSlots.Add(BodyPart, Slots);
 	}
+	
+	// Initialize CoreNodeSlots with default amplification factor
+	for (auto& Pair : MaxSlotsPerBodyPart)
+	{
+		EBodyPartType BodyPart = Pair.Key;
+		FCoreNodeSlot CoreSlot;
+		CoreSlot.AmplificationFactor = 1.0f;  // Default no amplification, can be modified via editor
+		CoreNodeSlots.Add(BodyPart, CoreSlot);
+	}
 }
 
 bool UConceptComponent::ObserveConcept(UConcept* Concept, float ObservationQuality)
@@ -237,31 +246,38 @@ bool UConceptComponent::AcquireConcept(UConcept* Concept, EBodyPartType TargetBo
 	return true;
 }
 
+void UConceptComponent::GainProgression(float Amount)
+{
+    if (Amount > 0.0f)
+    {
+        ProgressionPool += Amount;
+        // Optionally, check for automatic unlocks or log progression, but keep it manual for now
+    }
+}
+
 bool UConceptComponent::UnlockConceptSlot(EBodyPartType BodyPart, EConceptTier MaxTier)
 {
-	if (!BodyPartSlots.Contains(BodyPart))
-	{
-		return false;
-	}
-	
-	TArray<FConceptSlot>& Slots = BodyPartSlots[BodyPart];
-	
-	// Find the first locked slot
-	for (int32 i = 0; i < Slots.Num(); ++i)
-	{
-		if (!Slots[i].bIsUnlocked)
-		{
-			Slots[i].bIsUnlocked = true;
-			Slots[i].MaxTier = MaxTier;
-			
-			// Broadcast delegate
-			OnSlotUnlocked.Broadcast(Slots[i]);
-			
-			return true;
-		}
-	}
-	
-	return false; // No locked slots found
+    if (ProgressionPool >= ProgressionCostToUnlockSlot)
+    {
+        ProgressionPool -= ProgressionCostToUnlockSlot;  // Consume progression points
+        // Existing unlock logic; find the first locked slot and unlock it
+        if (BodyPartSlots.Contains(BodyPart))
+        {
+            TArray<FConceptSlot>& Slots = BodyPartSlots[BodyPart];
+            for (auto& Slot : Slots)
+            {
+                if (!Slot.bIsUnlocked)
+                {
+                    Slot.bIsUnlocked = true;
+                    Slot.MaxTier = MaxTier;  // Set the max tier for the slot
+                    OnSlotUnlocked.Broadcast(Slot);  // Broadcast the event
+                    return true;
+                }
+            }
+        }
+        return false;  // No locked slots found, or progression insufficient after check
+    }
+    return false;  // Not enough progression
 }
 
 TArray<FConceptSlot> UConceptComponent::GetSlotsForBodyPart(EBodyPartType BodyPart) const
@@ -293,6 +309,43 @@ bool UConceptComponent::FindEmptySlotForConcept(UConcept* Concept, EBodyPartType
 	}
 	
 	return false;
+}
+
+bool UConceptComponent::ReconfigureSlot(const FGuid& SlotId, EBodyPartType NewBodyPart, EConceptTier NewMaxTier)
+{
+    EBodyPartType OldBodyPart;
+    FConceptSlot Slot;
+    if (FindSlotById(SlotId, Slot, OldBodyPart))
+    {
+        // Remove slot from old body part
+        TArray<FConceptSlot>& OldSlots = BodyPartSlots[OldBodyPart];
+        OldSlots.Remove(Slot);
+        
+        // Set new body part and max tier
+        Slot.BodyPart = NewBodyPart;
+        Slot.MaxTier = NewMaxTier;
+        Slot.SlotId = SlotId;  // Preserve slot ID
+        
+        // Add to new body part slots
+        TArray<FConceptSlot>& NewSlots = BodyPartSlots[NewBodyPart];
+        NewSlots.Add(Slot);
+        
+        // Update CoreNode if necessary, but keep it simple for now
+        return true;
+    }
+    return false;
+}
+
+bool UConceptComponent::IncreaseCoreNodeAmplification(EBodyPartType BodyPart, float Amount)
+{
+    if (CoreNodeSlots.Contains(BodyPart))
+    {
+        FCoreNodeSlot& CoreSlot = CoreNodeSlots[BodyPart];
+        CoreSlot.AmplificationFactor += Amount;  // Increase amplification factor
+        CoreSlot.AmplificationFactor = FMath::Clamp(CoreSlot.AmplificationFactor, 1.0f, 5.0f);  // Clamp to reasonable values, e.g., 1.0 to 5.0
+        return true;
+    }
+    return false;  // Body part not found or no Core Node slot
 }
 
 bool UConceptComponent::IncreaseMastery(const FGuid& SlotId, int32 Amount)
@@ -379,4 +432,80 @@ void UConceptComponent::UpdateSlot(const FConceptSlot& Slot, EBodyPartType BodyP
 			break;
 		}
 	}
+}
+
+float UConceptComponent::CalculateCharacterObjectSynergy(UObject* EquippedObject)
+{
+    if (UConceptualObject* ConceptObject = Cast<UConceptualObject>(EquippedObject))
+    {
+        float synergy = 0.0f;
+        // Get object's concept names (assume FConceptSlot has a UConcept* Concept field)
+        TArray<UConcept*> ObjectConcepts;
+        for (const auto& Slot : ConceptObject->Slots)  // Assume Slots is a TArray<FConceptSlot>
+        {
+            if (Slot.Concept)
+            {
+                ObjectConcepts.Add(Slot.Concept);
+            }
+        }
+        
+        // Check against character's acquired concepts
+        for (auto* CharConcept : AcquiredConcepts.Array())  // AcquiredConcepts is TSet, use Array() for iteration
+        {
+            for (auto* ObjConcept : ObjectConcepts)
+            {
+                if (CharConcept == ObjConcept)  // Simple match, can be expanded to tag similarity
+                {
+                    synergy += 1.0f;  // Base synergy per match
+                }
+            }
+        }
+        
+        // Amplify by Core Node factors if the concept is in a Core Node Slot
+        // For simplicity, apply average amplification from all Core Nodes
+        float avgAmplification = 1.0f;
+        if (CoreNodeSlots.Num() > 0)
+        {
+            float sumAmp = 0.0f;
+            for (auto& CorePair : CoreNodeSlots)
+            {
+                sumAmp += CorePair.Value.AmplificationFactor;
+            }
+            avgAmplification = sumAmp / CoreNodeSlots.Num();
+            synergy *= avgAmplification;
+        }
+        
+        return synergy;  // Return synergy value as float
+    }
+    return 0.0f;  // No synergy if object is not a UConceptualObject or null
+}
+
+TArray<FString> UConceptComponent::GetConceptCombinationSynergies(const TArray<UConcept*>& Concepts)
+{
+    TArray<FString> synergies;
+    if (Concepts.Num() < 2) return synergies;  // No synergies with less than 2 concepts
+    
+    // Simple hardcoded synergy rules based on DESIGN.md; can be data-driven later with tags or tables
+    for (int32 i = 0; i < Concepts.Num(); ++i)
+    {
+        for (int32 j = i + 1; j < Concepts.Num(); ++j)
+        {
+            FString ConceptName1 = Concepts[i]->GetName();  // Assume UConcept has GetName or similar
+            FString ConceptName2 = Concepts[j]->GetName();
+            
+            if (ConceptName1.Equals("Fire", ESearchCase::IgnoreCase) && ConceptName2.Equals("Wind", ESearchCase::IgnoreCase))
+            {
+                synergies.Add("Flame Whirlwind: Increased area damage from fire-based attacks.");
+            }
+            else if (ConceptName1.Equals("Strength", ESearchCase::IgnoreCase) && ConceptName2.Equals("Heavy", ESearchCase::IgnoreCase))
+            {
+                synergies.Add("Crushing Force: Higher chance to stagger enemies on impact.");
+            }
+            // Add more rules as needed, e.g., from a data table in future iterations
+        }
+    }
+    
+    // Remove duplicates if any
+    synergies.Shrink();
+    return synergies;
 }

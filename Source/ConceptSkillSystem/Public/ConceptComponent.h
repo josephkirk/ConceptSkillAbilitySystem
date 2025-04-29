@@ -48,6 +48,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept System")
 	TSet<TSoftObjectPtr<UConcept>> AcquiredConcepts;
 
+	// New struct for Core Node Slots amplification
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept System")
+	TMap<EBodyPartType, FCoreNodeSlot> CoreNodeSlots;
+
 	// Delegates
 	UPROPERTY(BlueprintAssignable, Category = "Concept System")
 	FOnConceptAcquired OnConceptAcquired;
@@ -94,6 +98,35 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Concept System")
 	bool HasObservedConcept(UConcept* Concept) const;
 
+	// New functions for Body Manual functionality to enable slot reconfiguration and Core Node enhancements
+	UFUNCTION(BlueprintCallable, Category = "Concept System")
+	bool ReconfigureSlot(const FGuid& SlotId, EBodyPartType NewBodyPart, EConceptTier NewMaxTier);  // Reconfigure a slot's body part and max tier
+
+	UFUNCTION(BlueprintCallable, Category = "Concept System")
+	bool IncreaseCoreNodeAmplification(EBodyPartType BodyPart, float Amount);  // Increase the amplification factor for a Core Node
+
+	// New functions for synergy mechanics
+	UFUNCTION(BlueprintCallable, Category = "Synergy")
+	float CalculateCharacterObjectSynergy(UObject* EquippedObject);  // Calculate synergy between character and equipped object concepts
+
+	UFUNCTION(BlueprintCallable, Category = "Synergy")
+	TArray<FString> GetConceptCombinationSynergies(const TArray<UConcept*>& Concepts);  // Return emergent synergies from combined concepts
+
+	// Properties for progression mechanics
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Progression")
+	float ProgressionPool;  // Current pool of progression points
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Progression", meta = (ClampMin = "0", UIMin = "0"))
+	float ProgressionCostToUnlockSlot;  // Cost in progression points to unlock a new slot, default can be set in editor
+
+	// New functions for gaining progression and modified UnlockConceptSlot
+	UFUNCTION(BlueprintCallable, Category = "Progression")
+	void GainProgression(float Amount);  // Gain progression points from mundane activities
+
+	// Modify UnlockConceptSlot to require progression
+	UFUNCTION(BlueprintCallable, Category = "Concept System")
+	bool UnlockConceptSlot(EBodyPartType BodyPart, EConceptTier MaxTier = EConceptTier::Physical);  // Now checks and consumes progression
+
 private:
 	// Initialize slots for all body parts
 	void InitializeSlots();
@@ -107,4 +140,14 @@ private:
 	// The ability system component associated with this actor
 	UPROPERTY()
 	class UAbilitySystemComponent* AbilitySystemComponent;
+
+	// New struct for Core Node Slots amplification
+	USTRUCT(BlueprintType)
+	struct FCoreNodeSlot
+	{
+		GENERATED_BODY()
+		
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Core Node")
+		float AmplificationFactor;  // Factor to amplify concept effects, e.g., 1.5f for 50% boost
+	};
 };

@@ -289,3 +289,50 @@ bool AConceptualObject::FindSlotById(const FGuid& SlotId, FConceptSlot& OutSlot,
 	
 	return false;
 }
+
+bool AConceptualObject::OverSlotConcept(UConcept* Concept)
+{
+    if (!Concept) return false;
+    
+    // Check if there is an empty slot; over-slotting should only occur when slots are full
+    FConceptSlot DummySlot;
+    if (FindEmptySlotForConcept(Concept, DummySlot)) return false;  // No need for over-slotting if a slot is available
+    
+    // Determine success chance based on concept tier and object quality
+    // Lower success for higher tier concepts and lower quality objects
+    float successChance = 0.5f - 0.1f * static_cast<float>(Concept->Tier) + 0.1f * static_cast<float>(static_cast<uint8>(Quality));  // Example: Base 50%, -10% per tier, +10% per quality level
+    successChance = FMath::Clamp(successChance, 0.0f, 1.0f);
+    
+    if (FMath::FRand() <= successChance)
+    {
+        // Success: Add a new slot for the concept
+        FConceptSlot NewSlot;
+        NewSlot.bIsUnlocked = true;
+        NewSlot.MaxTier = Concept->Tier;
+        NewSlot.SetConcept(Concept);
+        NewSlot.SlotId = FGuid::NewGuid();
+        ConceptSlots.Add(NewSlot);
+        OnObjectConceptAdded.Broadcast(Concept, NewSlot);
+        return true;
+    }
+    else
+    {
+        // Failure: Determine if degradation or breakage
+        float breakageChance = 0.1f + 0.05f * static_cast<float>(Concept->Tier);  // Base 10% breakage chance, +5% per tier
+        breakageChance = FMath::Clamp(breakageChance, 0.0f, 1.0f);
+        
+        if (FMath::FRand() <= breakageChance)
+        {
+            // Breakage: Destroy the object
+            Destroy();
+            return false;
+        }
+        else
+        {
+            // Degradation: Reduce durability or quality
+            int32 degradationAmount = 10 + 5 * static_cast<int32>(Concept->Tier);  // Example degradation amount
+            ApplyDegradation(degradationAmount);
+            return false;
+        }
+    }
+}

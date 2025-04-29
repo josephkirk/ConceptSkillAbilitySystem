@@ -104,6 +104,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Concept System")
 	bool ApplyDegradation(int32 Amount);
 
+	// New function for over-slotting mechanic with risk of degradation or breakage
+	UFUNCTION(BlueprintCallable, Category = "Concept System")
+	bool OverSlotConcept(UConcept* Concept);  // Attempt to add a concept to a full object with associated risks
+
 private:
 	// Initialize slots based on quality
 	void InitializeSlots();
