@@ -165,7 +165,7 @@ private:
 
 	// The ability system component associated with this actor
 	UPROPERTY()
-	class UAbilitySystemComponent* AbilitySystemComponent;
+	TWeakObjectPtr<class UAbilitySystemComponent> AbilitySystemComponent;
 
 	// New struct for Core Node Slots amplification
 	USTRUCT(BlueprintType)

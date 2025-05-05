@@ -26,7 +26,7 @@ public:
 
 	// The target actor to debug
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept Skill Debugger")
-	AActor* TargetActor;
+	TWeakObjectPtr<AActor> TargetActor;
 
 	// Whether to automatically debug on begin play
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept Skill Debugger")

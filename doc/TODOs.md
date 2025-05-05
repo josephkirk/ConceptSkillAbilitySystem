@@ -5,6 +5,7 @@ This file lists key tasks to align the current implementation with the design do
 ## Core Components
 - [x] **Implement Core Node Slots:** [Completed] Added amplification mechanics in `ConceptComponent` to enhance concept effects within body areas. (References: DESIGN.md Section 3.2, Current gap in slot management)
 - [x] **Add Body Manual Functionality:** [Completed] Created a system for slot reconfiguration and increasing Core Node Slots, enabling player-driven specialization. (References: DESIGN.md Section 3.4, Missing in current code)
+- [x] Fix body slot implementation: Modified ConceptComponent to implement a grid-based inventory system with concepts occupying unit space and x-y coordinates, allowing for UI-based equipping. Implementation includes coordinate assignment and unique SlotIds; aligns with user feedback for better UI/UX, with a minor deviation from design pillars for improved player experience. [Completed] (References: DESIGN.md Section 3.1, User suggestion)
 
 ## Progression Mechanics
 - [x] **Enhance Mundane Activity Progression:** [Completed] Updated `ConceptComponent` to track and utilize a Progression Pool for unlocking slots through activities like sleep and training. (References: DESIGN.md Section 3.3, DESIGN Pillars, Partial implementation in mastery but not holistic)
@@ -20,5 +21,10 @@ This file lists key tasks to align the current implementation with the design do
 ## General Improvements
 - [x] **Ensure Design Pillar Integration:** [Completed] Integrated with Unreal 5 Gameplay Ability System by adding Gameplay Tag application in skill manifestation; added comprehensive tests and logging for debugging. All changes align with design pillars.
 - [x] **Update Documentation:** [Completed] This file has been updated.
+
+## Next Steps
+- [ ] Implement concept acquisition mechanics for observation, study, mentorship, and introspection to drive character progression.
+- [ ] Refine object system to handle intrinsic concepts, quality-dependent slots, and passive benefits.
+- [ ] Add testing and edge cases for synergies, over-slotting risks, and full integration with Unreal 5 systems.
 
 Review and update this list as features are implemented.

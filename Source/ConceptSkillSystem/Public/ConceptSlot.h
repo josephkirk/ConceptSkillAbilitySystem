@@ -52,6 +52,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept Slot")
 	FGuid SlotId;
 
+	// Grid coordinates for inventory system based on user suggestion
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept Slot")
+	int32 XCoordinate;  // X-coordinate in the grid
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Concept Slot")
+	int32 YCoordinate;  // Y-coordinate in the grid
+
 	// Check if the slot is empty
 	bool IsEmpty() const;
 

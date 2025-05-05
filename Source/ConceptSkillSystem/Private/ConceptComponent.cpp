@@ -13,6 +13,10 @@ UConceptComponent::UConceptComponent()
 	MaxSlotsPerBodyPart.Add(EBodyPartType::Body, 4);
 	MaxSlotsPerBodyPart.Add(EBodyPartType::Arms, 2);
 	MaxSlotsPerBodyPart.Add(EBodyPartType::Feet, 2);
+
+	// Set default grid dimensions for inventory system based on user suggestion
+	GridWidth = 5;  // Default grid width
+	GridHeight = 10;  // Default grid height, can be adjusted in editor or based on max slots
 }
 
 void UConceptComponent::BeginPlay()
@@ -81,6 +85,13 @@ void UConceptComponent::InitializeSlots()
 				NewSlot.MaxTier = EConceptTier::Physical;
 				break;
 			}
+			
+			// Assign grid coordinates based on index and GridWidth for inventory system
+			NewSlot.XCoordinate = i % GridWidth;
+			NewSlot.YCoordinate = i / GridWidth;
+			
+			// Assign a unique ID to the slot for proper identification
+			NewSlot.SlotId = FGuid::NewGuid();
 			
 			Slots.Add(NewSlot);
 		}
@@ -293,23 +304,96 @@ TArray<FConceptSlot> UConceptComponent::GetSlotsForBodyPart(EBodyPartType BodyPa
 
 bool UConceptComponent::FindEmptySlotForConcept(UConcept* Concept, EBodyPartType BodyPart, FConceptSlot& OutSlot)
 {
-	if (!Concept || !BodyPartSlots.Contains(BodyPart))
+    if (!Concept || !BodyPartSlots.Contains(BodyPart))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("FindEmptySlotForConcept: Invalid concept or body part not found."));
+        return false;
+    }
+    
+    const TArray<FConceptSlot>& Slots = BodyPartSlots[BodyPart];
+    
+    for (const FConceptSlot& Slot : Slots)
+    {
+        UE_LOG(LogTemp, Log, TEXT("Checking slot at X:%d, Y:%d, IsEmpty:%s, Unlocked:%s, CanHoldConcept:%s"), Slot.XCoordinate, Slot.YCoordinate, Slot.IsEmpty() ? TEXT("true") : TEXT("false"), Slot.bIsUnlocked ? TEXT("true") : TEXT("false"), Slot.CanHoldConcept(Concept) ? TEXT("true") : TEXT("false"));
+        if (Slot.IsEmpty() && Slot.bIsUnlocked && Slot.CanHoldConcept(Concept))
+        {
+            OutSlot = Slot;
+            UE_LOG(LogTemp, Log, TEXT("Found empty slot at X:%d, Y:%d"), Slot.XCoordinate, Slot.YCoordinate);
+            return true;
+        }
+    }
+    
+    UE_LOG(LogTemp, Warning, TEXT("No empty slot found for concept in body part %d"), (int32)BodyPart);
+    return false;
+}
+
+void UConceptComponent::GainProgression(float Amount)
+{
+    if (Amount > 0.0f)
+    {
+        ProgressionPool += Amount;
+        // Optionally, check for automatic unlocks or log progression, but keep it manual for now
+    }
+}
+
+bool UConceptComponent::UnlockConceptSlot(EBodyPartType BodyPart, EConceptTier MaxTier)
+{
+    if (ProgressionPool >= ProgressionCostToUnlockSlot)
+    {
+        ProgressionPool -= ProgressionCostToUnlockSlot;  // Consume progression points
+        // Existing unlock logic; find the first locked slot and unlock it
+        if (BodyPartSlots.Contains(BodyPart))
+        {
+            TArray<FConceptSlot>& Slots = BodyPartSlots[BodyPart];
+            for (auto& Slot : Slots)
+            {
+                if (!Slot.bIsUnlocked)
+                {
+                    Slot.bIsUnlocked = true;
+                    Slot.MaxTier = MaxTier;  // Set the max tier for the slot
+                    OnSlotUnlocked.Broadcast(Slot);  // Broadcast the event
+                    return true;
+                }
+            }
+        }
+        return false;  // No locked slots found, or progression insufficient after check
+    }
+    return false;  // Not enough progression
+}
+
+TArray<FConceptSlot> UConceptComponent::GetSlotsForBodyPart(EBodyPartType BodyPart) const
+{
+	if (BodyPartSlots.Contains(BodyPart))
 	{
-		return false;
+		return BodyPartSlots[BodyPart];
 	}
 	
-	const TArray<FConceptSlot>& Slots = BodyPartSlots[BodyPart];
-	
-	for (const FConceptSlot& Slot : Slots)
-	{
-		if (Slot.IsEmpty() && Slot.bIsUnlocked && Slot.CanHoldConcept(Concept))
-		{
-			OutSlot = Slot;
-			return true;
-		}
-	}
-	
-	return false;
+	return TArray<FConceptSlot>();
+}
+
+bool UConceptComponent::FindEmptySlotForConcept(UConcept* Concept, EBodyPartType BodyPart, FConceptSlot& OutSlot)
+{
+    if (!Concept || !BodyPartSlots.Contains(BodyPart))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("FindEmptySlotForConcept: Invalid concept or body part not found."));
+        return false;
+    }
+    
+    const TArray<FConceptSlot>& Slots = BodyPartSlots[BodyPart];
+    
+    for (const FConceptSlot& Slot : Slots)
+    {
+        UE_LOG(LogTemp, Log, TEXT("Checking slot at X:%d, Y:%d, IsEmpty:%s, Unlocked:%s, CanHoldConcept:%s"), Slot.XCoordinate, Slot.YCoordinate, Slot.IsEmpty() ? TEXT("true") : TEXT("false"), Slot.bIsUnlocked ? TEXT("true") : TEXT("false"), Slot.CanHoldConcept(Concept) ? TEXT("true") : TEXT("false"));
+        if (Slot.IsEmpty() && Slot.bIsUnlocked && Slot.CanHoldConcept(Concept))
+        {
+            OutSlot = Slot;
+            UE_LOG(LogTemp, Log, TEXT("Found empty slot at X:%d, Y:%d"), Slot.XCoordinate, Slot.YCoordinate);
+            return true;
+        }
+    }
+    
+    UE_LOG(LogTemp, Warning, TEXT("No empty slot found for concept in body part %d"), (int32)BodyPart);
+    return false;
 }
 
 bool UConceptComponent::ReconfigureSlot(const FGuid& SlotId, EBodyPartType NewBodyPart, EConceptTier NewMaxTier)

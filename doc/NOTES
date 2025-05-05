@@ -9,3 +9,7 @@
 - Synergistic and Emergent Capabilities: The interaction and combination of concepts, both within a character's own slots and between character and object slots, are central to the system, encouraging creative experimentation and leading to the emergence of unique and powerful synergistic abilities.
 - Player-Driven Specialization: Character development is highly personalized, shaped by the player's choices in what to observe, which concepts to prioritize, how to allocate limited concept slots, and how to utilize tools like the Body Manual to customize their character's fundamental conceptual capacity, supporting diverse and flexible archetypes.
 - Intergrate closely with Unreal 5 Gameplay Ability System and Gameplay Tags
+
+- Concept slotted into Body slot space will combine with adjacent concept to create synergistic effect like grant ability, passive effect.
+- Concepts can be mediate together to form new concept ( cost game time, can be boost by resource)
+- Think of ruleset of how concept link to each other like grammar - physical is verb and can not be next to another verb but must be adjective, adverb, noun, etc.
